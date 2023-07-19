@@ -1,81 +1,72 @@
 import pandas as pd
 from datetime import datetime, timedelta
 
-# Read the dataset into a DataFrame
 df = pd.read_csv('dataset.csv')
 
-# Data Quality Questions:
+# Data Manipulation Questions:
 
-# Q1. List the data quality issues found in the datasets with examples
-def list_data_quality_issues(df):
-    issues = []
+# Question 1: Classify the customers into their discount bracket and find the counts of distinct customers falling in each discount category
+def classify_discount(row):
+    transactions = row['Transaction ID']
+    total_purchase = row['Dollar Sales']
 
-    # Data Quality Issue 1: Duplicate Transactions
-    duplicate_transactions = df[df.duplicated('Transaction ID', keep=False)]
-    if not duplicate_transactions.empty:
-        issues.append("Duplicate Transactions:\n" + str(duplicate_transactions.head()) + "\n")
+    if transactions > 8 or total_purchase > 5000:
+        return '30% discount'
+    elif 5 <= transactions <= 8 or 2000 < total_purchase <= 5000:
+        return '20% discount'
+    else:
+        return '10% discount'
 
-    # Data Quality Issue 2: Date Format Consistency
-    try:
-        df['Order Date'] = pd.to_datetime(df['Order Date'], format='%m/%d/%y', errors='raise')
-    except Exception as e:
-        issues.append(f"Date Format Consistency Issue: {str(e)}\n")
+df['Discount Category'] = df.apply(classify_discount, axis=1)
+discount_counts = df['Discount Category'].value_counts()
 
-    # Data Quality Issue 3: Missing Values
-    missing_values = df.isnull().sum()
-    if any(missing_values):
-        issues.append("Missing Values:\n" + str(missing_values) + "\n")
+print("Discount Category Counts:")
+print(discount_counts)
 
-    # Data Quality Issue 4: Incorrect Data Types for Numeric Columns
-    numeric_cols = ['Dollar Sales', 'Returns', 'Quantity']
-    for col in numeric_cols:
-        if df[col].dtype not in ['int64', 'float64']:
-            issues.append(f"Incorrect Data Type for {col}: Expected numeric type (int or float).\n")
+# Question 2: Create a table containing Customer ID, number of transactions made, category of discount coupon, and their total dollar purchase in the last 2 years
+discount_table = df.groupby('Customer ID').agg({
+    'Transaction ID': 'count',
+    'Discount Category': 'first',
+    'Dollar Sales': 'sum'
+}).reset_index()
 
-    return issues
+discount_table.columns = ['Customer ID', 'Number of transactions', 'Discount Category', 'Total Dollar Purchase']
 
-# Call the function to list data quality issues with examples
-data_quality_issues = list_data_quality_issues(df)
 
-# Print data quality issues with examples
-print("Data Quality Issues:")
-for issue in data_quality_issues:
-    print(issue)
+discount_table = discount_table.sort_values(by='Total Dollar Purchase', ascending=False)
 
-# Q2. Write a logic/algorithm to identify and report data quality issues
-def identify_data_quality_issues(df):
-    issues = []
+print("\nDiscount Table:")
+print(discount_table)
 
-    # Check for duplicate transactions
-    duplicate_transactions = df[df.duplicated('Transaction ID', keep=False)]
-    if not duplicate_transactions.empty:
-        issues.append("Duplicate Transactions:\n" + str(duplicate_transactions) + "\n")
+# Question 3: Find the top 10 customers based on their purchase amounts in the last 6 months
 
-    # Check for date format consistency and convert to standardized format
-    df['Order Date'] = pd.to_datetime(df['Order Date'], format='%m/%d/%y', errors='coerce')
+df['Order Date'] = pd.to_datetime(df['Order Date'], format='%m/%d/%y')
 
-    # Check for missing values
-    missing_values = df.isnull().sum()
-    if any(missing_values):
-        issues.append("Missing Values:\n" + str(missing_values) + "\n")
+six_months_ago = pd.Timestamp.now() - pd.DateOffset(months=6)
+top_10_customers = df[df['Order Date'] >= six_months_ago].groupby('Customer ID')['Dollar Sales'].sum().nlargest(10)
 
-    # Check data types of numeric columns
-    numeric_cols = ['Dollar Sales', 'Returns', 'Quantity']
-    for col in numeric_cols:
-        if df[col].dtype not in ['int64', 'float64']:
-            issues.append(f"Incorrect Data Type for {col}: Expected numeric type (int or float).\n")
+print("\nTop 10 Customers based on Purchase Amount in the Last 6 Months:")
+print(top_10_customers)
 
-    return issues
+# Question 4: Find the top 2 salespersons of StyleMore along with their bonuses
+top_salespersons = df.groupby('Sales Person Name')['Dollar Sales'].sum().nlargest(2)
 
-# Call the function to identify data quality issues
-data_quality_issues = identify_data_quality_issues(df)
+print("\nTop 2 Salespersons of StyleMore with Bonuses:")
+print(top_salespersons)
 
-# Report data quality issues
-print("\nData Quality Issues:")
-for issue in data_quality_issues:
-    print(issue)
+# Question 5: Rank the top selling product in each category over 2022 on the basis of their dollar sales
 
-# Q3. Identify critical quality issues impacting results in data manipulation questions.
-# In this case, we don't need any additional code. The identified data quality issues can impact the results.
-# You can refer to the data quality issues found in Q1 and Q2 to understand the potential impact.
 
+df['Order Date'] = pd.to_datetime(df['Order Date'], format='%m/%d/%y')
+
+
+df_2022 = df[df['Order Date'].dt.year == 2022]
+
+
+top_selling_products = df_2022.groupby(['Category', 'Product Name'])['Dollar Sales'].sum()
+
+
+top_selling_products_ranked = top_selling_products.groupby('Category', group_keys=False).nlargest(1)
+
+print("\nTop Selling Products in Each Category in 2022:")
+print(top_selling_products_ranked)
