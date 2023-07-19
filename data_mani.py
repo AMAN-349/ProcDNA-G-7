@@ -70,3 +70,6 @@ top_selling_products_ranked = top_selling_products.groupby('Category', group_key
 
 print("\nTop Selling Products in Each Category in 2022:")
 print(top_selling_products_ranked)
+
+
+
