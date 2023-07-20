@@ -6,19 +6,32 @@ df = pd.read_csv('dataset.csv')
 # Data Manipulation Questions:
 
 # Question 1: Classify the customers into their discount bracket and find the counts of distinct customers falling in each discount category
+import pandas as pd
+
+# Step 1: Calculate total Dollar Sales and frequency for each Customer ID
+customer_summary = df.groupby('Customer ID').agg({
+    'Dollar Sales': 'sum',
+    'Transaction ID': 'size'
+}).reset_index()
+
+customer_summary.columns = ['Customer ID', 'Total Dollar Purchase', 'Number of Transactions']
+
+# Step 2: Classify the customers into their discount bracket
 def classify_discount(row):
-    transactions = row['Transaction ID']
-    total_purchase = row['Dollar Sales']
+    transactions = row['Number of Transactions']
+    total_purchase = row['Total Dollar Purchase']
 
     if transactions > 8 or total_purchase > 5000:
         return '30% discount'
-    elif 5 <= transactions <= 8 or 2000 < total_purchase <= 5000:
+    elif 5 <= transactions <= 8 and 2000 < total_purchase <= 5000:
         return '20% discount'
     else:
         return '10% discount'
 
-df['Discount Category'] = df.apply(classify_discount, axis=1)
-discount_counts = df['Discount Category'].value_counts()
+customer_summary['Discount Category'] = customer_summary.apply(classify_discount, axis=1)
+
+# Step 3: Find the counts of distinct customers falling in each discount category
+discount_counts = customer_summary['Discount Category'].value_counts()
 
 print("Discount Category Counts:")
 print(discount_counts)
